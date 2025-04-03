@@ -1,3 +1,4 @@
+
 # 🧭 FastAPI 기반 Travel MBTI RAG 분석 API
 
 이 프로젝트는 여행 관련 설문 응답을 기반으로 사용자의 MBTI를 예측하고, MBTI별 성향에 맞는 감성 메시지, 해시태그, 국내 여행지를 추천하는 **RAG 기반 API 서버**입니다.  
@@ -48,7 +49,9 @@ fastapi_travel_AI/
 │
 ├── routers/
 │   ├── question.py           # 객관식 질문 생성 API
-│   └── rag.py                # MBTI 분석 + 감성 추천 API
+│   ├── rag.py                # MBTI 분석 + 감성 추천 API
+│   ├── feedback.py           # 사용자 MBTI 피드백 API
+│   └── stats.py              # 사용자 응답 통계 조회 API
 │
 ├── services/
 │   ├── db_service.py         # MySQL 연동 함수 모음
@@ -63,10 +66,13 @@ fastapi_travel_AI/
 
 ## 🚀 주요 기능
 
-| 기능                  | 설명                                                              | 엔드포인트               |
-| --------------------- | ----------------------------------------------------------------- | ------------------------ |
-| 🔸 객관식 질문 생성   | 여행 성향을 분석하기 위한 질문 5개 생성                           | `GET /generate_question` |
-| 🔸 RAG 기반 성향 분석 | 설문 응답 기반으로 MBTI 예측 + 감성 메시지 + 해시태그 + 지역 추천 | `POST /rag_recommend`    |
+| 기능                  | 설명                                                              | 엔드포인트                |
+| --------------------- | ----------------------------------------------------------------- | ------------------------- |
+| 🔸 객관식 질문 생성   | 여행 성향을 분석하기 위한 질문 5개 생성                           | `GET /generate_question`  |
+| 🔸 RAG 기반 성향 분석 | 설문 응답 기반으로 MBTI 예측 + 감성 메시지 + 해시태그 + 지역 추천 | `POST /rag_recommend`     |
+| 🔸 사용자 피드백 저장 | 예측된 MBTI 결과에 대한 사용자 피드백 저장                        | `POST /feedback`          |
+| 🔸 응답 통계 조회    | 사용자 응답 통계를 조회하여 분석 정확도 개선 지원                 | `GET /stats`              |
+| 🔸 최근 응답 조회    | 최근 사용자 응답 내역을 조회                                      | `GET /stats/recent_answers`|
 
 ---
 
@@ -98,97 +104,38 @@ POST /rag_recommend
     "description": "친화력 1등! 혼자 여행가도 문제없어 ..."
   },
   "recommendation": "ESFJ님은 계획적이면서도 타인을 잘 챙기는 여행 스타일입니다. ...",
-  "tags": ["#우정여행", "#도시탐방", "#감성사진", ...],
+  "tags": ["#우정여행", "#도시탐방", "#감성사진"],
   "recommended_regions": ["부산", "여수", "전주"]
 }
 ```
 
----
+### ✅ 최근 사용자 응답 조회 (`/stats/recent_answers`)
 
-## ⚙️ 설치 및 실행 방법
+```json
+GET /stats/recent_answers
 
-### 1️⃣ 프로젝트 클론 및 진입
-
-```bash
-git clone https://github.com/your-name/fastapi_travel_project.git
-cd fastapi_travel_project
+[
+  {
+    "answer_id": 123,
+    "answers": [
+      "나는 자연을 좋아해",
+      "혼자 여행을 즐긴다",
+      "즉흥적인 여행을 좋아해"
+    ],
+    "mbti_result": "ISTP",
+    "created_at": "2025-04-03T10:00:00"
+  },
+  {
+    "answer_id": 124,
+    "answers": [
+      "새로운 사람 만나는 것을 좋아해",
+      "함께 여행하는 것을 선호한다"
+    ],
+    "mbti_result": "ENFP",
+    "created_at": "2025-04-03T11:00:00"
+  }
+]
 ```
-
-### 2️⃣ 가상환경 설정 (선택)
-
-```bash
-python -m venv venv
-source venv/bin/activate   # Mac/Linux
-venv\Scripts\activate      # Windows
-```
-
-### 3️⃣ 환경 변수 설정
-
-`.env` 파일을 프로젝트 루트에 생성하고 아래 내용을 작성합니다.
-
-```env
-GEMINI_API_KEY=your-gemini-api-key
-
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your-password
-DB_NAME=travel_mbti
-```
-
-### 4️⃣ 패키지 설치
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5️⃣ 서버 실행
-
-```bash
-uvicorn main:app --reload
-```
-
-- 로컬 접속: [http://localhost:8000/docs](http://localhost:8000/docs)
-
----
-
-## 🗃️ DB 테이블 구조
-
-### 🔹 `mbti_traits`
-
-| 필드        | 설명                 |
-| ----------- | -------------------- |
-| type        | MBTI 유형 (ex. ENFP) |
-| main_title  | 성향 이름 요약       |
-| sub_title   | 짧은 설명            |
-| description | 상세 성향 설명       |
-| created_at  | 생성일               |
-
-### 🔹 `travel_tags`
-
-| 필드 | 설명                                 |
-| ---- | ------------------------------------ |
-| tag  | 추천 해시태그 문자열 (예: #감성사진) |
-
----
-
-## 📦 requirements.txt 예시
-
-```txt
-fastapi
-uvicorn
-pydantic
-python-dotenv
-google-generativeai
-mysql-connector-python
-```
-
----
-
-## 📌 참고 사항
-
-- Google Cloud Console에서 Gemini API 사용 설정 및 API 키 발급 필요
-- `.env`는 Git에 절대 커밋하지 마세요 (민감 정보 포함)
-- 프론트엔드에서 CORS 허용을 위해 모든 origin을 열어두었으나, 배포 시에는 도메인 제한 권장
 
 ---
 
